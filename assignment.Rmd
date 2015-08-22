@@ -1,0 +1,139 @@
+---
+title: "Practical Machine learning assignment"
+author: "Ahmed Abdelaziz"
+date: "August 21, 2015"
+output: html_document
+---
+
+**Background**
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. The training data for this project are available here:  https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+The test data are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. 
+
+Loading, cleaning and exploring data
+----------------------------------
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(dev = 'png')
+```
+
+```{r message=FALSE}
+# Load the libraries
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(randomForest)
+library(parallel)
+library(doParallel)
+set.seed(1234)
+```
+
+
+```{r}
+# Load the training set
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv", method ="curl")
+training.raw.data <- read.csv("pml-training.csv")
+# Load the test set
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv", method ="curl")
+test.raw.data <- read.csv("pml-testing.csv")
+
+str(training.raw.data)
+summary(training.raw.data)
+```
+
+The dataframe structure showed that many variables that are mostly NA's. These doesn't have any information and should be cleaned out.
+Starting from the seventh column, all variables should be numeric, however, some of them are loaded as factors instead of numeric (possibly because of the presence of an error message "#DIV/0!" in some cells)
+
+**1- Cleaning the data**
+
+reread the files assigning "#DIV/0!" as NA
+```{r}
+training.data <- read.csv("pml-training.csv", na.strings = c("#DIV/0!"))
+test.data <- read.csv("pml-testing.csv", na.strings = c("#DIV/0!"))
+```
+
+convert all columns starting from the seventh to numeric (except the classe)
+```{r}
+training.data[, 7:ncol(training.data)-1] <- sapply(training.data[, 7:ncol(training.data)-1], as.numeric)
+test.data[, 7:ncol(test.data)] <- sapply(test.data[, 7:ncol(test.data)], as.numeric)
+```
+
+From all feature columns, select only the ones without any missing values (NAs) 
+```{r}
+# Select all features columns
+features.df <- training.data[, 8:ncol(training.data)] 
+# remove any columns where sum NA >0
+features.df <- features.df[, colSums(is.na(features.df))==0] 
+```
+
+The resulting dataframe has 120 variables for features with no NAs and 19622 observations. We should divide the observations into training and test sets. The size of the training set is 60% while the test set is 40%
+
+```{r}
+model.data <- createDataPartition(y=features.df$classe, p=60/100, list=FALSE)
+training.set <- features.df[model.data,]
+probe.set <- features.df[-model.data,]
+```
+
+**Build a random Forestspredictore using the training set**
+
+ Initialize a computing cluster with 75% of the cores, build the predictive model using the training data, then stop the cluster.
+```{r}
+computing.cluster <- makeCluster(detectCores() * .75)
+registerDoParallel(computing.cluster)
+controller <-
+trainControl(
+classProbs = TRUE, savePredictions = TRUE, allowParallel = TRUE
+)
+system.time(rf.model <-
+train(classe ~ ., data = training.set, method = "rf"))
+stopCluster(computing.cluster)
+rf.model
+rf.model$finalModel
+```
+
+
+**Evaluate the model on the training and probing sets**
+
+*First: the confusion matrix for the training set*
+
+```{r}
+training.set.hat <- predict(rf.model, training.set)
+confusionMatrix(training.set.hat, training.set[, "classe"])
+```
+Applying the model on the training set shows the *fitting* capability of the model. Balanced accuract is 1.0  for all claseses. 
+
+*second: the confusion matrix for the probing set*
+```{r}
+probing.set.hat <- predict(rf.model, probe.set)
+confusionMatrix(probing.set.hat, probe.set[, "classe"])
+```
+Applying the model on the probing set shows the *prediction* capability of the model. Balanced accuract is 1.0  for all claseses. 
+
+**Predict the test set**
+Predicting the 20 cases that were loaded from separate test file.
+```{r}
+test.set.hat <- predict(rf.model, test.data)
+test.set.hat
+```
+
+**Write the predictions to files for submission to Coursera**
+
+The function was copied from the Coursera submission instructions page:
+https://class.coursera.org/predmachlearn-031/assignment/view?assignment_id=5
+
+The files are saved to a folder and uploaded manually
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+setwd("predictionForSubmission")
+pml_write_files(test.set.hat)
+```
+
+All predictions are correct.
