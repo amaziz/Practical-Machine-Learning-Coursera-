@@ -584,10 +584,11 @@ controller &lt;-
 trainControl(
 classProbs = TRUE, savePredictions = TRUE, allowParallel = TRUE
 )
-#system.time(rf.model &lt;-
-#train(classe ~ ., data = training.set, method = &quot;rf&quot;))
-load(file=&quot;rf.model.RData&quot;)
-stopCluster(computing.cluster)
+system.time(rf.model &lt;-
+train(classe ~ ., data = training.set, method = &quot;rf&quot;))</code></pre>
+<pre><code>##     user   system  elapsed 
+##   74.807    0.409 2739.361</code></pre>
+<pre class="r"><code>stopCluster(computing.cluster)
 rf.model</code></pre>
 <pre><code>## Random Forest 
 ## 
@@ -601,9 +602,9 @@ rf.model</code></pre>
 ## Resampling results across tuning parameters:
 ## 
 ##   mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
-##     2   0.8818502  0.8496192  0.009801089  0.012513514
-##    60   0.9858910  0.9821493  0.002183044  0.002765540
-##   119   0.9768214  0.9706736  0.004980119  0.006314025
+##     2   0.8823215  0.8502073  0.011142820  0.014243904
+##    60   0.9857992  0.9820328  0.002295577  0.002908893
+##   119   0.9769700  0.9708620  0.004886897  0.006193023
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
 ## The final value used for the model was mtry = 60.</code></pre>
@@ -624,7 +625,7 @@ rf.model</code></pre>
 ## D    0    0   28 1900    2 0.015544041
 ## E    0    1    7    8 2149 0.007390300</code></pre>
 <p>As the model takes long time to calculate, iot is worth to save it to disk. It can be loaded later for evaluation instead of recalculating it.</p>
-<pre class="r"><code>#save(rf.model, file=&quot;rf.model.RData&quot;)</code></pre>
+<pre class="r"><code>save(rf.model, file=&quot;rf.model.RData&quot;)</code></pre>
 <p><strong>Evaluate the model on the training and probing sets</strong></p>
 <p><em>First: the confusion matrix for the training set</em></p>
 <pre class="r"><code>training.set.hat &lt;- predict(rf.model, training.set)
@@ -660,7 +661,7 @@ confusionMatrix(training.set.hat, training.set[, &quot;classe&quot;])</code></pr
 ## Detection Rate         0.2843   0.1935   0.1744   0.1639   0.1838
 ## Detection Prevalence   0.2843   0.1935   0.1744   0.1639   0.1838
 ## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000</code></pre>
-<p>Applying the model on the training set shows the <em>fitting</em> capability of the model. Balanced accuract is 1.0 for all claseses.</p>
+<p>Applying the model on the training set shows the <em>fitting</em> capability of the model. Fitting balanced accuracy is 1.0 for all claseses.</p>
 <p><em>second: the confusion matrix for the probing set</em></p>
 <pre class="r"><code>probing.set.hat &lt;- predict(rf.model, probe.set)
 confusionMatrix(probing.set.hat, probe.set[, &quot;classe&quot;])</code></pre>
@@ -695,7 +696,7 @@ confusionMatrix(probing.set.hat, probe.set[, &quot;classe&quot;])</code></pre>
 ## Detection Rate         0.2843   0.1902   0.1719   0.1610   0.1828
 ## Detection Prevalence   0.2869   0.1921   0.1756   0.1624   0.1830
 ## Balanced Accuracy      0.9980   0.9903   0.9908   0.9902   0.9971</code></pre>
-<p>Applying the model on the probing set shows the <em>prediction</em> capability of the model. Balanced accuract is 1.0 for all claseses.</p>
+<p>Applying the model on the probing set shows the <em>prediction</em> capability of the model. Prediction balanced accuracy is above 99% for all claseses.</p>
 <p><strong>Predict the test set</strong> Predicting the 20 cases that were loaded from separate test file.</p>
 <pre class="r"><code>test.set.hat &lt;- predict(rf.model, test.data)
 test.set.hat</code></pre>

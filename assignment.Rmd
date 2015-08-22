@@ -93,6 +93,11 @@ rf.model
 rf.model$finalModel
 ```
 
+As the model takes long time to calculate, iot is worth to save it to disk. It can be loaded later for evaluation instead of recalculating it. 
+
+```{r}
+save(rf.model, file="rf.model.RData")
+```
 
 **Evaluate the model on the training and probing sets**
 
@@ -102,14 +107,14 @@ rf.model$finalModel
 training.set.hat <- predict(rf.model, training.set)
 confusionMatrix(training.set.hat, training.set[, "classe"])
 ```
-Applying the model on the training set shows the *fitting* capability of the model. Balanced accuract is 1.0  for all claseses. 
+Applying the model on the training set shows the *fitting* capability of the model. Fitting balanced accuracy is 1.0  for all claseses. 
 
 *second: the confusion matrix for the probing set*
 ```{r}
 probing.set.hat <- predict(rf.model, probe.set)
 confusionMatrix(probing.set.hat, probe.set[, "classe"])
 ```
-Applying the model on the probing set shows the *prediction* capability of the model. Balanced accuract is 1.0  for all claseses. 
+Applying the model on the probing set shows the *prediction* capability of the model. Prediction balanced accuracy is above 99%  for all claseses. 
 
 **Predict the test set**
 Predicting the 20 cases that were loaded from separate test file.
